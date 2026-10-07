@@ -2,10 +2,11 @@ package com.portfolio.access;
 
 import java.util.Locale;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,15 @@ public class RegistrationService {
 				.password(passwordEncoder.encode(rawPassword))
 				.roles("USER")
 				.build();
-		users.createUser(account);
+
+		if (users.userExists(username)) {
+			throw new UsernameAlreadyExistsException();
+		}
+
+		try {
+			users.createUser(account);
+		} catch (DuplicateKeyException exception) {
+			throw new UsernameAlreadyExistsException(exception);
+		}
 	}
 }

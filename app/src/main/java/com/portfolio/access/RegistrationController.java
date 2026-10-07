@@ -1,6 +1,5 @@
 package com.portfolio.access;
 
-import org.springframework.security.core.userdetails.UsernameAlreadyExistsException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
