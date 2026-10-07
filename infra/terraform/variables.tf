@@ -76,3 +76,65 @@ variable "nat_gateway_strategy" {
     error_message = "nat_gateway_strategy must be either single or per_az."
   }
 }
+
+variable "acm_certificate_arn" {
+  description = "Optional ACM certificate ARN in this AWS Region. When set, HTTP redirects to HTTPS."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = (var.acm_certificate_arn == null && var.application_domain_name == null) || (
+      var.acm_certificate_arn != null && var.application_domain_name != null
+    )
+    error_message = "Set both acm_certificate_arn and application_domain_name for HTTPS, or leave both unset for the HTTP demo."
+  }
+}
+
+variable "application_domain_name" {
+  description = "DNS name covered by the ACM certificate, such as portal.example.com."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "app_instance_type" {
+  description = "EC2 instance type used by the application Auto Scaling Group."
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "app_min_size" {
+  description = "Minimum application instance count. Keep at zero until an application image is published."
+  type        = number
+  default     = 0
+}
+
+variable "app_desired_capacity" {
+  description = "Desired application instance count. Keep at zero until an application image is published."
+  type        = number
+  default     = 0
+}
+
+variable "app_max_size" {
+  description = "Maximum application instance count."
+  type        = number
+  default     = 2
+}
+
+variable "database_instance_class" {
+  description = "RDS MySQL instance class. RDS remains billable while running."
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "database_master_username" {
+  description = "RDS master username. RDS generates and stores its password in Secrets Manager."
+  type        = string
+  default     = "portal_admin"
+
+  validation {
+    condition     = can(regex("^[A-Za-z][A-Za-z0-9_]{0,15}$", var.database_master_username))
+    error_message = "The database master username must start with a letter and contain at most 16 letters, digits, or underscores."
+  }
+}

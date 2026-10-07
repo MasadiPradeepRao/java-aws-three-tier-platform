@@ -8,7 +8,7 @@ This is an independently authored application and deployment platform, inspired 
 
 ## Current status
 
-This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. A local MySQL setup is documented in [app/README.md](app/README.md). The AWS network foundation is in [infra/terraform](infra/terraform); application resources and delivery automation will follow.
+This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. A local MySQL setup is documented in [app/README.md](app/README.md). Terraform now defines the AWS network, public load balancer, private EC2 Auto Scaling Group foundation, and isolated RDS MySQL instance in [infra/terraform](infra/terraform). The app group defaults to zero instances until container deployment is implemented.
 
 ## Planned milestones
 
@@ -16,7 +16,7 @@ This repository is under active development. The independently written Spring Bo
 2. Build the original Java access portal with secure database-backed sign-in.
 3. Add a reproducible local MySQL environment and run instructions.
 4. Create the AWS network and least-privilege security boundaries in Terraform.
-5. Provision the application tier, load balancer, and private database.
+5. Add the application tier, load balancer, and private database foundation in Terraform; container bootstrap follows.
 6. Package the application with Docker and add image security checks.
 7. Add Maven CI, code-quality analysis, and artifact publishing.
 8. Deploy through short-lived GitHub OIDC credentials and a documented release flow.

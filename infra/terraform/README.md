@@ -1,18 +1,33 @@
-# AWS network foundation
+# AWS application foundation
 
-This Terraform root creates a VPC with public, application-private, and data-private subnets across two Availability Zones. Public subnets route through an Internet Gateway; application subnets use NAT for outbound connections; data subnets have no internet route. Security groups allow HTTP to the load balancer, port 8080 from the load balancer to the app, MySQL from the app to the database, and outbound HTTPS from the app tier.
+This Terraform root builds a three-tier AWS foundation in two Availability Zones:
 
-## Cost and availability choice
+- Public subnets host an internet-facing Application Load Balancer.
+- Private application subnets host an EC2 Auto Scaling Group. Instances have no public IPs, use encrypted root volumes and require IMDSv2. Systems Manager access is enabled through an instance role; SSH is not opened.
+- Isolated data subnets host an encrypted, private Amazon RDS for MySQL 8.4 instance. Its password is generated and managed by RDS in Secrets Manager.
 
-The default `nat_gateway_strategy = "single"` creates one NAT Gateway to keep this learning environment's fixed networking costs lower. It introduces an Availability Zone dependency and cross-AZ traffic for the other application subnet. Set it to `"per_az"` for one NAT Gateway in each AZ; that improves AZ-local egress resilience but increases cost. NAT Gateways are billable while provisioned. Review the AWS estimate before applying and destroy the environment when finished.
+Security groups restrict the path to browser -> ALB -> application -> database. The app tier accepts port 8080 only from the ALB, and MySQL accepts port 3306 only from the app tier. A target group checks `/actuator/health`.
 
-The database subnets are isolated from internet routes. No SSH ingress is configured. HTTPS is the current outbound allowance for application instances; a later step can replace broad egress with specific VPC endpoints where practical.
+## Deployment stages and transport security
+
+The Auto Scaling Group defaults to zero instances because this milestone does not yet publish or install the application image. That keeps the ALB target group empty until the container delivery milestone is complete. Set `app_desired_capacity` above zero only after the launch template has a working application bootstrap; otherwise the target group will stay unhealthy.
+
+Without `acm_certificate_arn`, the ALB exposes HTTP on port 80 for a disposable demonstration only. HTTP does not protect login credentials in transit, so do not enter real credentials. For HTTPS, create and validate an ACM certificate in the same region as this stack (`eu-north-1` by default), set both `acm_certificate_arn` and `application_domain_name` in `terraform.tfvars`, and create a DNS alias/CNAME that points your domain at the ALB. The configuration will add a TLS listener and redirect HTTP to HTTPS.
+
+RDS's generated master password is not put in Terraform variables or granted to EC2. It is an administrative credential, not the application's least-privilege database user. A later milestone must create and deliver a dedicated runtime user through a controlled secret workflow before the deployed app is connected to this database. Do not put the master password in source control, user data, or a Terraform output.
+
+## Cost and data lifecycle
+
+This is a learning environment, not a free or zero-cost deployment. The ALB, RDS instance, NAT Gateway, and public IPv4 addresses can incur charges even while the Auto Scaling Group has zero instances. The defaults use one NAT Gateway and a Single-AZ database to limit fixed cost. One NAT Gateway creates an AZ dependency; production should use resilient egress and a Multi-AZ database where the availability requirement justifies the cost.
+
+The database is deliberately configured for a disposable demo: deletion protection is off and Terraform skips the final snapshot on destroy. Export or snapshot data before removing a stack if it matters. Review the AWS cost estimate before applying and destroy resources when finished.
 
 ## Prerequisites
 
 - Terraform 1.9 or newer
-- AWS CLI configured with a least-privilege identity for the resources in this project
-- An AWS account and permission to create VPC, route, subnet, Elastic IP, NAT Gateway, and security group resources
+- AWS CLI configured with a least-privilege identity
+- Permission to create the network, load balancer, IAM role, EC2 launch template and Auto Scaling Group, RDS, and Secrets Manager resources
+- Optional: a validated ACM certificate in the selected region for HTTPS
 
 ## Plan and apply
 
@@ -27,14 +42,14 @@ terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
-Review the plan before applying. Terraform uses local state in this learning step. Do not commit `.terraform/`, `terraform.tfstate*`, `tfplan`, or real `terraform.tfvars` files. A later step will configure protected remote state before this is used collaboratively.
+Review every plan before applying. Terraform uses local state in this learning step. Do not commit `.terraform/`, `terraform.tfstate*`, `tfplan`, or real `terraform.tfvars` files. Configure protected remote state before using this collaboratively or from CI.
 
 ## Tear down
 
-When you have finished using the environment:
+When finished, review the destroy plan and then run:
 
 ```bash
 terraform destroy
 ```
 
-Confirm the destroy plan before approving it. NAT Gateways and their public IPv4 addresses can continue to incur charges until removed.
+This deletes the demo database without a final snapshot. NAT Gateways and public IPv4 addresses can continue to incur charges until removed.

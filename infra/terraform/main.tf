@@ -17,4 +17,34 @@ module "security" {
   project_name = var.project_name
   environment  = var.environment
   vpc_id       = module.network.vpc_id
+  enable_https = var.acm_certificate_arn != null
+}
+
+module "application" {
+  source = "./modules/application"
+
+  project_name          = var.project_name
+  environment           = var.environment
+  vpc_id                = module.network.vpc_id
+  public_subnet_ids     = module.network.public_subnet_ids
+  app_subnet_ids        = module.network.app_subnet_ids
+  alb_security_group_id = module.security.alb_security_group_id
+  app_security_group_id = module.security.app_security_group_id
+  certificate_arn       = var.acm_certificate_arn
+  domain_name           = var.application_domain_name
+  instance_type         = var.app_instance_type
+  min_size              = var.app_min_size
+  desired_capacity      = var.app_desired_capacity
+  max_size              = var.app_max_size
+}
+
+module "database" {
+  source = "./modules/database"
+
+  project_name               = var.project_name
+  environment                = var.environment
+  subnet_ids                 = module.network.data_subnet_ids
+  database_security_group_id = module.security.database_security_group_id
+  instance_class             = var.database_instance_class
+  master_username            = var.database_master_username
 }

@@ -1,4 +1,14 @@
-project_name          = "access-portal"
-environment           = "dev"
-aws_region            = "eu-north-1"
-nat_gateway_strategy = "single"
+project_name                = "access-portal"
+environment                 = "dev"
+aws_region                  = "eu-north-1"
+nat_gateway_strategy        = "single"
+app_instance_type           = "t3.micro"
+app_min_size                = 0
+app_desired_capacity        = 0
+app_max_size                = 2
+database_instance_class     = "db.t3.micro"
+database_master_username    = "portal_admin"
+# Set to an ACM certificate ARN in eu-north-1 after configuring a domain.
+# Without a certificate, the ALB serves HTTP; do not send real credentials.
+# acm_certificate_arn = "arn:aws:acm:eu-north-1:123456789012:certificate/example"
+# application_domain_name = "portal.example.com"

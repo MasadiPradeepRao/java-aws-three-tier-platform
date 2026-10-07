@@ -32,3 +32,23 @@ output "database_security_group_id" {
   description = "Security group ID for the private database."
   value       = module.security.database_security_group_id
 }
+
+output "application_url" {
+  description = "Load balancer URL. Use HTTPS only when an ACM certificate was supplied."
+  value       = module.application.application_url
+}
+
+output "application_target_group_arn" {
+  description = "Target group attached to the application Auto Scaling Group."
+  value       = module.application.target_group_arn
+}
+
+output "database_endpoint" {
+  description = "Private RDS endpoint for application configuration."
+  value       = module.database.endpoint
+}
+
+output "database_master_secret_arn" {
+  description = "Secrets Manager ARN for the RDS-managed master password; not the password itself."
+  value       = module.database.master_secret_arn
+}
