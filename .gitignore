@@ -1,0 +1,31 @@
+# Local secrets and environment configuration
+.env
+.env.*
+!.env.example
+*.tfvars
+!*.tfvars.example
+secrets/
+
+# Terraform local state and generated files
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Java / Maven outputs
+**/target/
+*.class
+*.jar
+*.war
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
