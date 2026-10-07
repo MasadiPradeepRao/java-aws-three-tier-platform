@@ -143,4 +143,6 @@ jobs:
           ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
         run: |
           docker tag access-portal:ci "$ECR_REPOSITORY_URI:sha-${GITHUB_SHA}"
+          docker tag access-portal:ci "$ECR_REPOSITORY_URI:latest"
           docker push "$ECR_REPOSITORY_URI:sha-${GITHUB_SHA}"
+          docker push "$ECR_REPOSITORY_URI:latest"

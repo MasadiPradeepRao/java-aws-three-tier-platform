@@ -103,6 +103,39 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+data "aws_iam_policy_document" "application_runtime" {
+  statement {
+    sid       = "GetEcrAuthorizationToken"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "PullApplicationImage"
+    effect = "Allow"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:GetDownloadUrlForLayer",
+    ]
+    resources = [var.ecr_repository_arn]
+  }
+
+  statement {
+    sid       = "ReadApplicationDatabaseSecret"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.database_secret_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "application_runtime" {
+  name   = "${var.project_name}-${var.environment}-runtime-access"
+  role   = aws_iam_role.application.id
+  policy = data.aws_iam_policy_document.application_runtime.json
+}
+
 resource "aws_iam_instance_profile" "application" {
   name = "${var.project_name}-${var.environment}-app"
   role = aws_iam_role.application.name
@@ -113,6 +146,13 @@ resource "aws_launch_template" "application" {
   image_id               = data.aws_ssm_parameter.al2023_ami.value
   instance_type          = var.instance_type
   update_default_version = true
+  user_data              = base64encode(templatefile("${path.module}/user_data.sh.tftpl", {
+    aws_region        = var.aws_region
+    ecr_registry      = split("/", var.ecr_repository_url)[0]
+    ecr_repository    = var.ecr_repository_url
+    database_endpoint = var.database_endpoint
+    database_secret   = var.database_secret_arn
+  }))
 
   iam_instance_profile {
     arn = aws_iam_instance_profile.application.arn

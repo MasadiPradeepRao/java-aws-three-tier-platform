@@ -1,0 +1,93 @@
+#!/bin/bash
+set -Eeuo pipefail
+
+dnf install -y awscli-2 docker jq
+systemctl enable --now docker
+
+cat > /usr/local/sbin/access-portal-container <<'SCRIPT'
+#!/bin/bash
+set -Eeuo pipefail
+
+AWS_REGION='${aws_region}'
+ECR_REGISTRY='${ecr_registry}'
+ECR_IMAGE='${ecr_repository}:latest'
+DATABASE_ENDPOINT='${database_endpoint}'
+DATABASE_SECRET_ARN='${database_secret}'
+ENV_FILE='/etc/access-portal/app.env'
+
+start_application() {
+  secret_json="$(aws secretsmanager get-secret-value \
+    --region "$AWS_REGION" \
+    --secret-id "$DATABASE_SECRET_ARN" \
+    --query SecretString \
+    --output text)"
+  db_username="$(jq -er '.username | strings | select(length > 0)' <<< "$secret_json")"
+  db_password="$(jq -er '.password | strings | select(length > 0)' <<< "$secret_json")"
+  migration_username="$(jq -er '.migrationUsername | strings | select(length > 0)' <<< "$secret_json")"
+  migration_password="$(jq -er '.migrationPassword | strings | select(length > 0)' <<< "$secret_json")"
+  unset secret_json
+
+  if [[ "$db_username" == *$'\n'* || "$db_username" == *$'\r'* || \
+        "$db_password" == *$'\n'* || "$db_password" == *$'\r'* || \
+        "$migration_username" == *$'\n'* || "$migration_username" == *$'\r'* || \
+        "$migration_password" == *$'\n'* || "$migration_password" == *$'\r'* ]]; then
+    echo 'Database secret values must not contain newlines.' >&2
+    return 1
+  fi
+
+  install -d -m 0700 /etc/access-portal
+  umask 077
+  printf 'DB_URL=jdbc:mysql://%s:3306/access_portal?sslMode=REQUIRED\nDB_USERNAME=%s\nDB_PASSWORD=%s\nDB_MIGRATION_USERNAME=%s\nDB_MIGRATION_PASSWORD=%s\n' \
+    "$DATABASE_ENDPOINT" "$db_username" "$db_password" \
+    "$migration_username" "$migration_password" > "$ENV_FILE"
+  chmod 0600 "$ENV_FILE"
+  unset db_username db_password migration_username migration_password
+
+  aws ecr get-login-password --region "$AWS_REGION" \
+    | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+  docker pull "$ECR_IMAGE"
+  docker logout "$ECR_REGISTRY" >/dev/null
+  docker rm --force access-portal >/dev/null 2>&1 || true
+  exec docker run \
+    --name access-portal \
+    --rm \
+    --memory 700m \
+    --publish 8080:8080 \
+    --env-file "$ENV_FILE" \
+    "$ECR_IMAGE"
+}
+
+stop_application() {
+  docker stop --time 30 access-portal >/dev/null 2>&1 || true
+  rm -f "$ENV_FILE"
+}
+
+case "$${1:-start}" in
+  start) start_application ;;
+  stop) stop_application ;;
+  *) echo 'Usage: access-portal-container {start|stop}' >&2; exit 2 ;;
+esac
+SCRIPT
+
+chmod 0750 /usr/local/sbin/access-portal-container
+
+cat > /etc/systemd/system/access-portal.service <<'UNIT'
+[Unit]
+Description=Access portal container
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=20
+ExecStart=/usr/local/sbin/access-portal-container start
+ExecStop=/usr/local/sbin/access-portal-container stop
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now access-portal.service

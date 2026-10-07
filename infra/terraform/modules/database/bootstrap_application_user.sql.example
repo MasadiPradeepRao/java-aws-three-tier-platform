@@ -1,0 +1,14 @@
+-- Run from a MySQL client inside the VPC as the RDS master user.
+-- Replace each placeholder with a different long random password. For this
+-- simple SQL example, use letters and digits only. Store the same values in
+-- the application database secret after creating these users.
+CREATE USER 'portal_app'@'%' IDENTIFIED BY 'REPLACE_WITH_LONG_RANDOM_PASSWORD';
+CREATE USER 'portal_migrator'@'%' IDENTIFIED BY 'REPLACE_WITH_DIFFERENT_LONG_RANDOM_PASSWORD';
+
+-- The application account can access only the two authentication tables.
+GRANT SELECT, INSERT, UPDATE, DELETE ON access_portal.users TO 'portal_app'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON access_portal.authorities TO 'portal_app'@'%';
+
+-- Flyway has schema-change privileges, scoped to this database only.
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
+ON access_portal.* TO 'portal_migrator'@'%';

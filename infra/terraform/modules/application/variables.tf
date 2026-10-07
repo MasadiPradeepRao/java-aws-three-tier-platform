@@ -26,6 +26,26 @@ variable "app_security_group_id" {
   type = string
 }
 
+variable "aws_region" {
+  type = string
+}
+
+variable "ecr_repository_arn" {
+  type = string
+}
+
+variable "ecr_repository_url" {
+  type = string
+}
+
+variable "database_endpoint" {
+  type = string
+}
+
+variable "database_secret_arn" {
+  type = string
+}
+
 variable "certificate_arn" {
   type     = string
   default  = null

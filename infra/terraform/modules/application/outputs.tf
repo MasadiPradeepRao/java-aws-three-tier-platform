@@ -17,3 +17,8 @@ output "autoscaling_group_name" {
   description = "Application Auto Scaling Group name."
   value       = aws_autoscaling_group.application.name
 }
+
+output "instance_profile_name" {
+  description = "Instance profile for private application-tier EC2 instances."
+  value       = aws_iam_instance_profile.application.name
+}

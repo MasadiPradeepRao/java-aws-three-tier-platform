@@ -13,6 +13,11 @@ output "app_subnet_ids" {
   value       = module.network.app_subnet_ids
 }
 
+output "application_instance_profile_name" {
+  description = "Instance profile used by private app and temporary SSM administration instances."
+  value       = module.application.instance_profile_name
+}
+
 output "data_subnet_ids" {
   description = "Isolated subnet IDs for the database tier."
   value       = module.network.data_subnet_ids
@@ -48,13 +53,23 @@ output "database_endpoint" {
   value       = module.database.endpoint
 }
 
+output "database_hostname" {
+  description = "Private RDS hostname without the port."
+  value       = module.database.hostname
+}
+
 output "database_master_secret_arn" {
   description = "Secrets Manager ARN for the RDS-managed master password; not the password itself."
   value       = module.database.master_secret_arn
 }
 
+output "database_application_secret_arn" {
+  description = "Empty Secrets Manager secret to populate with the least-privilege application database user."
+  value       = module.database.application_secret_arn
+}
+
 output "ecr_repository_url" {
-  description = "Immutable-tag Amazon ECR repository for scanned application images."
+  description = "ECR repository URL with immutable commit tags and a mutable latest alias."
   value       = module.release.repository_url
 }
 

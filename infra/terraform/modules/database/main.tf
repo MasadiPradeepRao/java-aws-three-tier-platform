@@ -39,3 +39,9 @@ resource "aws_db_instance" "database" {
     Name = "${var.project_name}-${var.environment}-database"
   }
 }
+
+resource "aws_secretsmanager_secret" "application_database" {
+  name                    = "${var.project_name}/${var.environment}/database/application"
+  description             = "Least-privilege database credentials used by the access portal."
+  recovery_window_in_days = 0
+}

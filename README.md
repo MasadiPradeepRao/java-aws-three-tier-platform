@@ -8,7 +8,7 @@ This is an independently authored application and deployment platform, inspired 
 
 ## Current status
 
-This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. The app has a multi-stage, non-root Docker image and local Trivy scanning. GitHub Actions runs Maven verification and SpotBugs, scans the built image, and publishes the same scanned image to GHCR on successful pushes to `main`. Terraform defines the AWS network, public load balancer, private EC2 Auto Scaling Group foundation, isolated RDS MySQL instance, and a GitHub OIDC role plus immutable ECR repository in [infra/terraform](infra/terraform). Once the Terraform outputs are added as GitHub Actions variables, the workflow can publish the same scanned image to ECR with a commit-SHA tag. The app group defaults to zero instances until secure runtime bootstrap and deployment are implemented.
+This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. The app has a multi-stage, non-root Docker image and local Trivy scanning. GitHub Actions runs Maven verification and SpotBugs, scans the built image, and publishes the same scanned image to GHCR and ECR on successful pushes to `main`. Terraform defines the AWS network, public load balancer, private EC2 Auto Scaling Group, isolated RDS MySQL instance, GitHub OIDC release role, and an immutable-tag ECR repository in [infra/terraform](infra/terraform). The EC2 launch template installs Docker, pulls the latest scanned image, and reads only the dedicated app database secret at boot. The app group remains at zero until the database user and secret are configured.
 
 ## Planned milestones
 
@@ -19,8 +19,10 @@ This repository is under active development. The independently written Spring Bo
 5. Add the application tier, load balancer, and private database foundation in Terraform; container bootstrap follows.
 6. Package the application with Docker and add image security checks. Local image build and Trivy scan commands are available.
 7. Add Maven CI, code-quality analysis, and artifact publishing. (GitHub Actions, SpotBugs, Trivy, and GHCR delivery are configured.)
-8. Add short-lived GitHub OIDC access and a documented release flow. (OIDC trust, least-privilege ECR publishing, and the workflow are configured; AWS resource creation and repository variables remain an operator step.)
-9. Add monitoring, cost controls, teardown instructions, and portfolio evidence.
+8. Add short-lived GitHub OIDC access and publish scanned images to ECR. (OIDC trust, least-privilege ECR publishing, and the workflow are configured; AWS resource creation and repository variables remain an operator step.)
+9. Bootstrap the private EC2 tier with the container and a dedicated database secret. (Terraform and startup configuration are in place; the database user and secret value must be provisioned before scaling above zero.)
+10. Add a controlled rolling deployment for new ECR images.
+11. Add monitoring, cost controls, teardown instructions, and portfolio evidence.
 
 ## Security
 

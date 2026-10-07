@@ -30,6 +30,11 @@ module "application" {
   app_subnet_ids        = module.network.app_subnet_ids
   alb_security_group_id = module.security.alb_security_group_id
   app_security_group_id = module.security.app_security_group_id
+  aws_region            = var.aws_region
+  ecr_repository_arn    = module.release.repository_arn
+  ecr_repository_url    = module.release.repository_url
+  database_endpoint     = module.database.hostname
+  database_secret_arn   = module.database.application_secret_arn
   certificate_arn       = var.acm_certificate_arn
   domain_name           = var.application_domain_name
   instance_type         = var.app_instance_type
