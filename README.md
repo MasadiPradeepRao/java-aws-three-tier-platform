@@ -21,7 +21,7 @@ This repository is under active development. The independently written Spring Bo
 7. Add Maven CI, code-quality analysis, and artifact publishing. (GitHub Actions, SpotBugs, Trivy, and GHCR delivery are configured.)
 8. Add short-lived GitHub OIDC access and publish scanned images to ECR. (OIDC trust, least-privilege ECR publishing, and the workflow are configured; AWS resource creation and repository variables remain an operator step.)
 9. Bootstrap the private EC2 tier with the container and a dedicated database secret. (Terraform and startup configuration are in place; the database user and secret value must be provisioned before scaling above zero.)
-10. Add a controlled rolling deployment for new ECR images.
+10. Add a controlled rolling deployment for new ECR images. (GitHub Actions uses a fixed SSM command to restart app-tagged instances one at a time and checks health before it proceeds.)
 11. Add monitoring, cost controls, teardown instructions, and portfolio evidence.
 
 ## Security

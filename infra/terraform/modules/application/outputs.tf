@@ -22,3 +22,8 @@ output "instance_profile_name" {
   description = "Instance profile for private application-tier EC2 instances."
   value       = aws_iam_instance_profile.application.name
 }
+
+output "instance_name" {
+  description = "Name tag used to target application instances for a controlled rollout."
+  value       = "${var.project_name}-${var.environment}-app"
+}

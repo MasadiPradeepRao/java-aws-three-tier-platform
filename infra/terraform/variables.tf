@@ -105,13 +105,13 @@ variable "app_instance_type" {
 }
 
 variable "app_min_size" {
-  description = "Minimum application instance count. Keep at zero until an application image is published."
+  description = "Minimum application instance count. Keep at zero until the app database secret is provisioned."
   type        = number
   default     = 0
 }
 
 variable "app_desired_capacity" {
-  description = "Desired application instance count. Keep at zero until an application image is published."
+  description = "Desired application instance count. Keep at zero until the app database secret is provisioned."
   type        = number
   default     = 0
 }

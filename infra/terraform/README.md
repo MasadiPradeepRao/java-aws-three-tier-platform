@@ -44,7 +44,7 @@ The database is deliberately configured for a disposable demo: deletion protecti
 - Terraform 1.9 or newer
 - AWS CLI configured with a least-privilege identity
 - Permission to create the network, load balancer, IAM roles and policies, EC2 launch template and Auto Scaling Group, RDS, and Secrets Manager resources
-- Permission to create an IAM OIDC provider, IAM role and policy, and ECR repository
+- Permission to create an IAM OIDC provider, IAM roles and policies, an ECR repository, and an SSM command document
 - Optional: a validated ACM certificate in the selected region for HTTPS
 
 ## Plan and apply
@@ -62,9 +62,19 @@ terraform apply tfplan
 
 Review every plan before applying. Terraform uses local state in this learning step. Do not commit `.terraform/`, `terraform.tfstate*`, `tfplan`, or real `terraform.tfvars` files. Configure protected remote state before using this collaboratively or from CI.
 
-After applying, copy the `github_actions_role_arn` and `ecr_repository_url` outputs into GitHub repository **Actions variables** named `AWS_ROLE_ARN` and `ECR_REPOSITORY_URI`; set `AWS_REGION` to the same region used by Terraform. These are identifiers, not secrets. The ECR workflow is skipped until all three variables exist. The role trust policy accepts only the configured repository and branch. If the AWS account already has the GitHub Actions OIDC provider, import that provider into Terraform state before applying instead of attempting to create a duplicate.
+After applying, configure GitHub repository **Actions variables** from the Terraform outputs:
 
-The ECR workflow publishes the same image tarball that passed the CI vulnerability scan, tagged with the full source commit SHA and `latest`. Commit tags cannot be overwritten; `latest` is the only mutable tag and is used when new EC2 instances start. Existing instances do not automatically restart when a new image is published; rolling deployment is a separate follow-up milestone. The existing GHCR publication remains unchanged. The ASG remains at zero until you set a desired capacity after database-secret setup; scale it back to zero when finished to reduce compute charges.
+| GitHub Actions variable | Terraform output |
+| --- | --- |
+| `AWS_ROLE_ARN` | `github_actions_role_arn` |
+| `AWS_REGION` | `aws_region` |
+| `ECR_REPOSITORY_URI` | `ecr_repository_url` |
+| `SSM_RESTART_DOCUMENT_NAME` | `application_restart_document_name` |
+| `APP_INSTANCE_NAME` | `application_instance_name` |
+
+These are identifiers, not secrets. ECR publishing is skipped until the first three variables exist. The rollout step is skipped until the last two are also configured. After publishing, it targets only running instances with the app `Name` tag, runs the fixed restart-and-health-check SSM document one instance at a time, waits for the local health check plus an ALB health-check window, and fails the workflow if a host does not become healthy. When the ASG is at zero, it reports that no instances need restarting; future instances pull the published `latest` image. The OIDC role is restricted to the configured repository and branch, the ECR repository, and app-tagged instances in this region. If the AWS account already has the GitHub Actions OIDC provider, import that provider into Terraform state before applying instead of attempting to create a duplicate.
+
+The ECR workflow publishes the same image tarball that passed the CI vulnerability scan, tagged with the full source commit SHA and `latest`. Commit tags cannot be overwritten; `latest` is the only mutable tag and is used when new EC2 instances start. Once the SSM variables are configured, pushes to `main` restart running instances one at a time and wait for health between restarts. The existing GHCR publication remains unchanged. The ASG remains at zero until you set a desired capacity after database-secret setup; scale it back to zero when finished to reduce compute charges.
 
 ## Tear down
 

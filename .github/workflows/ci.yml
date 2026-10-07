@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: delivery-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   verify:
@@ -126,7 +126,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: github-actions-${{ github.run_id }}
-          role-duration-seconds: 900
+          role-duration-seconds: 1800
 
       - name: Log in to Amazon ECR
         env:
@@ -138,7 +138,7 @@ jobs:
           aws ecr get-login-password --region "$AWS_REGION" \
             | docker login --username AWS --password-stdin "$registry"
 
-      - name: Publish the scanned image with an immutable commit tag
+      - name: Publish the scanned image with SHA and latest tags
         env:
           ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
         run: |
@@ -146,3 +146,68 @@ jobs:
           docker tag access-portal:ci "$ECR_REPOSITORY_URI:latest"
           docker push "$ECR_REPOSITORY_URI:sha-${GITHUB_SHA}"
           docker push "$ECR_REPOSITORY_URI:latest"
+
+      - name: Roll out the image to running application instances
+        if: vars.SSM_RESTART_DOCUMENT_NAME != '' && vars.APP_INSTANCE_NAME != ''
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          SSM_RESTART_DOCUMENT_NAME: ${{ vars.SSM_RESTART_DOCUMENT_NAME }}
+          APP_INSTANCE_NAME: ${{ vars.APP_INSTANCE_NAME }}
+        shell: bash
+        run: |
+          instance_ids="$(aws ec2 describe-instances \
+            --region "$AWS_REGION" \
+            --filters "Name=tag:Name,Values=$APP_INSTANCE_NAME" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[].InstanceId' \
+            --output text)"
+
+          if [[ -z "$instance_ids" || "$instance_ids" == "None" ]]; then
+            echo "No running app instances found; new instances will pull the published latest image."
+            exit 0
+          fi
+
+          command_id="$(aws ssm send-command \
+            --region "$AWS_REGION" \
+            --document-name "$SSM_RESTART_DOCUMENT_NAME" \
+            --targets "Key=tag:Name,Values=$APP_INSTANCE_NAME" \
+            --max-concurrency 1 \
+            --max-errors 0 \
+            --timeout-seconds 420 \
+            --comment "Deploy ${GITHUB_SHA}" \
+            --query 'Command.CommandId' \
+            --output text)"
+          echo "Waiting for SSM rollout command $command_id"
+
+          for attempt in {1..160}; do
+            statuses="$(aws ssm list-command-invocations \
+              --region "$AWS_REGION" \
+              --command-id "$command_id" \
+              --query 'CommandInvocations[].Status' \
+              --output text)"
+
+            if [[ "$statuses" =~ ^Success([[:space:]]+Success)*$ ]]; then
+              echo "Application instances are healthy on the new image."
+              exit 0
+            fi
+
+            if [[ "$statuses" =~ (Failed|TimedOut|Cancelled|Cancelling|DeliveryTimedOut|ExecutionTimedOut|Undeliverable|Terminated|InvalidPlatform) ]]; then
+              aws ssm list-command-invocations \
+                --region "$AWS_REGION" \
+                --command-id "$command_id" \
+                --details \
+                --query 'CommandInvocations[].{InstanceId:InstanceId,Status:Status,Output:CommandPlugins[0].Output}' \
+                --output table
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "SSM rollout did not complete before the workflow timeout." >&2
+          aws ssm list-command-invocations \
+            --region "$AWS_REGION" \
+            --command-id "$command_id" \
+            --details \
+            --query 'CommandInvocations[].{InstanceId:InstanceId,Status:Status,Output:CommandPlugins[0].Output}' \
+            --output table
+          exit 1

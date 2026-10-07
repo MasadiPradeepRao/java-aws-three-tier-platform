@@ -3,6 +3,11 @@ output "vpc_id" {
   value       = module.network.vpc_id
 }
 
+output "aws_region" {
+  description = "Region used for this stack and the GitHub Actions release workflow."
+  value       = var.aws_region
+}
+
 output "public_subnet_ids" {
   description = "Public subnet IDs for the load balancer tier."
   value       = module.network.public_subnet_ids
@@ -16,6 +21,11 @@ output "app_subnet_ids" {
 output "application_instance_profile_name" {
   description = "Instance profile used by private app and temporary SSM administration instances."
   value       = module.application.instance_profile_name
+}
+
+output "application_instance_name" {
+  description = "Name tag used by the workflow to select app instances for rollout."
+  value       = module.application.instance_name
 }
 
 output "data_subnet_ids" {
@@ -76,4 +86,9 @@ output "ecr_repository_url" {
 output "github_actions_role_arn" {
   description = "AWS role assumed by the trusted GitHub Actions OIDC subject."
   value       = module.release.github_role_arn
+}
+
+output "application_restart_document_name" {
+  description = "SSM document name used by GitHub Actions for controlled app restarts."
+  value       = module.release.restart_document_name
 }
