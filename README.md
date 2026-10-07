@@ -8,7 +8,38 @@ This is an independently authored application and deployment platform, inspired 
 
 ## Current status
 
-This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. The app has a multi-stage, non-root Docker image and local Trivy scanning. GitHub Actions runs Maven verification and SpotBugs, scans the built image, and publishes the same scanned image to GHCR and ECR on successful pushes to `main`. Terraform defines the AWS network, public load balancer, private EC2 Auto Scaling Group, isolated RDS MySQL instance, GitHub OIDC release role, and an immutable-tag ECR repository in [infra/terraform](infra/terraform). The EC2 launch template installs Docker, pulls the latest scanned image, and reads only the dedicated app database secret at boot. The app group remains at zero until the database user and secret are configured.
+The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. The app has a multi-stage, non-root Docker image and local Trivy scanning. GitHub Actions runs Maven verification and SpotBugs, scans the built image, and publishes the same scanned image to GHCR and ECR on successful pushes to `main`. Terraform defines the AWS network, public load balancer, private EC2 Auto Scaling Group, isolated RDS MySQL instance, GitHub OIDC release role, and an immutable-tag ECR repository in [infra/terraform](infra/terraform). The EC2 launch template installs Docker, pulls the latest scanned image, and reads only the dedicated app database secret at boot. The app group remains at zero until the database user and secret are configured. The infrastructure also defines CloudWatch operational alarms, optional email and monthly budget notifications, and ECR image retention.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Dev[Developer] -->|push| GH[GitHub Actions]
+  GH -->|Maven + SpotBugs + Trivy| CI[Verified image]
+  CI -->|OIDC, short-lived role| ECR[Amazon ECR]
+  GH -->|SSM rollout| EC2[Private EC2 Auto Scaling Group]
+  ECR --> EC2
+  User[Browser] --> ALB[Application Load Balancer]
+  ALB --> EC2
+  EC2 -->|TLS MySQL| RDS[(Private RDS MySQL)]
+  EC2 -->|read app credentials| SM[Secrets Manager]
+  ALB --> CW[CloudWatch alarms]
+  RDS --> CW
+  CW --> SNS[Optional email alerts]
+  Budget[AWS Budget] -->|optional cost alerts| Email[Alert email]
+```
+
+## Tooling demonstrated
+
+| Area | Tools and practices |
+| --- | --- |
+| Application | Java, Spring Boot, Spring Security, JDBC, Flyway, MySQL |
+| Build and quality | Maven, GitHub Actions, SpotBugs |
+| Containers and supply chain | Docker multi-stage build, non-root runtime, Trivy, GHCR, Amazon ECR |
+| AWS infrastructure | Terraform, VPC, ALB, EC2 Auto Scaling, RDS, Secrets Manager, IAM |
+| Delivery and operations | GitHub OIDC, Systems Manager, CloudWatch alarms, AWS Budgets |
+
+See [portfolio evidence](docs/portfolio-evidence.md) for a checklist of real deployment screenshots and safe sharing practices.
 
 ## Planned milestones
 
@@ -22,7 +53,7 @@ This repository is under active development. The independently written Spring Bo
 8. Add short-lived GitHub OIDC access and publish scanned images to ECR. (OIDC trust, least-privilege ECR publishing, and the workflow are configured; AWS resource creation and repository variables remain an operator step.)
 9. Bootstrap the private EC2 tier with the container and a dedicated database secret. (Terraform and startup configuration are in place; the database user and secret value must be provisioned before scaling above zero.)
 10. Add a controlled rolling deployment for new ECR images. (GitHub Actions uses a fixed SSM command to restart app-tagged instances one at a time and checks health before it proceeds.)
-11. Add monitoring, cost controls, teardown instructions, and portfolio evidence.
+11. Add operational monitoring, cost notifications, image retention, teardown guidance, and portfolio evidence. (Terraform includes four CloudWatch alarms, optional email and budget notifications, and an ECR lifecycle policy. Deployment remains an operator action.)
 
 ## Security
 

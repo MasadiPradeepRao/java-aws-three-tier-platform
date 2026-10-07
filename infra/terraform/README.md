@@ -76,12 +76,34 @@ These are identifiers, not secrets. ECR publishing is skipped until the first th
 
 The ECR workflow publishes the same image tarball that passed the CI vulnerability scan, tagged with the full source commit SHA and `latest`. Commit tags cannot be overwritten; `latest` is the only mutable tag and is used when new EC2 instances start. Once the SSM variables are configured, pushes to `main` restart running instances one at a time and wait for health between restarts. The existing GHCR publication remains unchanged. The ASG remains at zero until you set a desired capacity after database-secret setup; scale it back to zero when finished to reduce compute charges.
 
+## Monitoring and cost notifications
+
+Terraform creates CloudWatch alarms for unhealthy ALB targets, ALB 5xx responses, sustained RDS CPU, and low RDS free storage. Alarm actions publish to an SNS topic. To receive email, set `alert_email` in your local `terraform.tfvars`, apply the plan, and confirm the SNS subscription email. Without an address, alarms still exist but no one is subscribed to receive notifications.
+
+When `alert_email` is set, Terraform also creates a monthly AWS cost budget using `monthly_budget_limit_usd` (USD), with actual-cost notifications above 80% and forecast notifications above 100%. AWS Budgets updates its status several times per day, so notifications are not instant. A budget is an alert threshold and does not stop or cap charges. Review the account's AWS billing settings and estimate before deploying.
+
+ECR lifecycle policy keeps the ten newest `sha-` release images; the `latest` tag is retained separately as the deployment pointer. This limits accumulation but does not remove all ECR storage costs.
+
 ## Tear down
 
-When finished, review the destroy plan and then run:
+When finished, reduce the application desired capacity to zero and review the destroy plan. The ECR repository contains published images and must be empty before Terraform can delete it. List the image IDs, inspect the generated file, and delete only the images in this project's repository:
+
+```bash
+aws ecr list-images \
+  --repository-name access-portal-dev \
+  --query 'imageIds[*]' \
+  --output json > image-ids.json
+aws ecr batch-delete-image \
+  --repository-name access-portal-dev \
+  --image-ids file://image-ids.json
+```
+
+Use your actual repository name if you changed `project_name` or `environment`. `image-ids.json` may contain image tags; review it before deletion. The command permanently removes those image references from this repository.
+
+Then remove the infrastructure:
 
 ```bash
 terraform destroy
 ```
 
-This deletes the demo database without a final snapshot. NAT Gateways and public IPv4 addresses can continue to incur charges until removed.
+This deletes the demo database without a final snapshot. Export data or create a snapshot first if it matters. NAT Gateways, the load balancer, RDS, and public IPv4 addresses can incur charges until the destroy operation finishes. Confirm that the resources are gone in AWS Billing/Cost Explorer afterward. AWS Budgets and CloudWatch alarm notifications are not a spending cap.

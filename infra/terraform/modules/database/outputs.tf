@@ -22,3 +22,8 @@ output "application_secret_arn" {
   description = "Secrets Manager ARN for the application database user; Terraform does not store its value."
   value       = aws_secretsmanager_secret.application_database.arn
 }
+
+output "identifier" {
+  description = "RDS identifier used as the CloudWatch metric dimension."
+  value       = aws_db_instance.database.identifier
+}

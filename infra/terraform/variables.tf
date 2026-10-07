@@ -155,3 +155,26 @@ variable "github_branch" {
   type        = string
   default     = "main"
 }
+
+variable "alert_email" {
+  description = "Optional email address for CloudWatch alarm and monthly budget notifications. Confirm the SNS subscription after deployment."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.alert_email == null || can(regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", var.alert_email))
+    error_message = "alert_email must be a valid email address or null."
+  }
+}
+
+variable "monthly_budget_limit_usd" {
+  description = "Monthly AWS cost notification threshold in USD. A budget sends alerts; it does not cap spending."
+  type        = number
+  default     = 25
+
+  validation {
+    condition     = var.monthly_budget_limit_usd > 0
+    error_message = "monthly_budget_limit_usd must be greater than zero."
+  }
+}

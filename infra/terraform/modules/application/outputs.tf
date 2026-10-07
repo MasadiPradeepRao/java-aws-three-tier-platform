@@ -13,6 +13,16 @@ output "target_group_arn" {
   value       = aws_lb_target_group.application.arn
 }
 
+output "load_balancer_arn_suffix" {
+  description = "CloudWatch dimension value for the application load balancer."
+  value       = aws_lb.application.arn_suffix
+}
+
+output "target_group_arn_suffix" {
+  description = "CloudWatch dimension value for the application target group."
+  value       = aws_lb_target_group.application.arn_suffix
+}
+
 output "autoscaling_group_name" {
   description = "Application Auto Scaling Group name."
   value       = aws_autoscaling_group.application.name

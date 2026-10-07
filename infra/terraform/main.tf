@@ -62,3 +62,15 @@ module "release" {
   github_repository = var.github_repository
   github_branch     = var.github_branch
 }
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  project_name             = var.project_name
+  environment              = var.environment
+  alert_email              = var.alert_email
+  monthly_budget_limit_usd = var.monthly_budget_limit_usd
+  load_balancer_arn_suffix = module.application.load_balancer_arn_suffix
+  target_group_arn_suffix  = module.application.target_group_arn_suffix
+  database_identifier      = module.database.identifier
+}

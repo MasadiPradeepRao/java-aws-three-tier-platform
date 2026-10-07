@@ -169,3 +169,20 @@ resource "aws_ecr_repository" "application" {
     encryption_type = "AES256"
   }
 }
+
+resource "aws_ecr_lifecycle_policy" "application" {
+  repository = aws_ecr_repository.application.name
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep the ten most recent commit-tagged release images"
+      selection = {
+        tagStatus     = "tagged"
+        tagPrefixList = ["sha-"]
+        countType     = "imageCountMoreThan"
+        countNumber   = 10
+      }
+      action = { type = "expire" }
+    }]
+  })
+}
