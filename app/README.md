@@ -36,4 +36,10 @@ docker compose --profile container build access-portal
 bash scripts/scan-image.sh
 ```
 
-Trivy reports HIGH and CRITICAL OS-package and application-library vulnerabilities and returns a failure status when it finds any. Review each finding, update the affected base image or dependency, rebuild, and scan again. Install Trivy using its [official installation guide](https://trivy.dev/latest/getting-started/installation/). The image packaging build skips Maven tests; automated tests and CI gates are a later milestone.
+Trivy reports HIGH and CRITICAL OS-package and application-library vulnerabilities and returns a failure status when it finds any. Review each finding, update the affected base image or dependency, rebuild, and scan again. Install Trivy using its [official installation guide](https://trivy.dev/latest/getting-started/installation/). The Docker packaging build skips Maven tests; GitHub Actions runs Maven verification separately.
+
+## Continuous integration and image publishing
+
+The GitHub Actions workflow runs Maven `verify` with SpotBugs and builds/scans the container for pull requests to `main` and pushes to `main`. It publishes only after both checks pass. The exact image artifact that passed Trivy is transferred to the publish job and pushed to GitHub Container Registry with a commit-SHA tag and a `latest` tag. Pull requests do not publish images. Workflow actions are pinned to commit SHAs; Trivy uses a release identified as safe in the [official security advisory](https://github.com/aquasecurity/trivy/security/advisories/GHSA-69fq-xp46-6x23).
+
+The Maven `verify` phase runs the project test lifecycle and fails on high-severity SpotBugs findings. The current app does not yet have an automated test suite; add focused tests before relying on test coverage as a quality signal.
