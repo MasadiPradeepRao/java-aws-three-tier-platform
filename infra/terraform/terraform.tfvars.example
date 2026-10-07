@@ -1,0 +1,4 @@
+project_name          = "access-portal"
+environment           = "dev"
+aws_region            = "eu-north-1"
+nat_gateway_strategy = "single"

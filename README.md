@@ -8,7 +8,7 @@ This is an independently authored application and deployment platform, inspired 
 
 ## Current status
 
-This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. A local MySQL setup is documented in [app/README.md](app/README.md). Infrastructure and delivery automation will follow.
+This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. A local MySQL setup is documented in [app/README.md](app/README.md). The AWS network foundation is in [infra/terraform](infra/terraform); application resources and delivery automation will follow.
 
 ## Planned milestones
 
