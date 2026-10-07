@@ -8,7 +8,7 @@ This is an independently authored application and deployment platform, inspired 
 
 ## Current status
 
-This repository is under active development. The app is now an independently written Spring Boot service with Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. Infrastructure and delivery automation will follow. Setup instructions will be added as each part is implemented and verified.
+This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. A local MySQL setup is documented in [app/README.md](app/README.md). Infrastructure and delivery automation will follow.
 
 ## Planned milestones
 
