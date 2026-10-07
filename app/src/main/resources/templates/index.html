@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Access Portal</title>
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+<body>
+<main class="panel">
+    <p class="eyebrow">AWS delivery platform</p>
+    <h1>Access Portal</h1>
+    <p>A small Java service used to demonstrate a secure build, deployment, and operations workflow.</p>
+    <nav class="actions">
+        <a class="button" th:href="@{/login}">Sign in</a>
+        <a class="button secondary" th:href="@{/register}">Create an account</a>
+    </nav>
+</main>
+</body>
+</html>

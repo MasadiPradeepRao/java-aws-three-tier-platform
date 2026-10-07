@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create account · Access Portal</title>
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+<body>
+<main class="panel">
+    <p class="eyebrow">Access Portal</p>
+    <h1>Create account</h1>
+    <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+    <form method="post" th:action="@{/register}" th:object="${registrationForm}">
+        <label for="username">Username</label>
+        <input id="username" th:field="*{username}" autocomplete="username" required>
+        <p class="field-error" th:errors="*{username}" th:if="${#fields.hasErrors('username')}"></p>
+        <label for="password">Password</label>
+        <input id="password" th:field="*{password}" type="password" autocomplete="new-password" required>
+        <p class="help">Use 12–72 characters.</p>
+        <p class="field-error" th:errors="*{password}" th:if="${#fields.hasErrors('password')}"></p>
+        <button type="submit">Create account</button>
+    </form>
+    <p>Already registered? <a th:href="@{/login}">Sign in</a></p>
+</main>
+</body>
+</html>

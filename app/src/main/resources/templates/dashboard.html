@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard · Access Portal</title>
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+<body>
+<main class="panel">
+    <p class="eyebrow">Authenticated area</p>
+    <h1>Welcome, <span th:text="${username}">user</span></h1>
+    <p>Your session is protected by Spring Security.</p>
+    <form method="post" th:action="@{/logout}">
+        <button class="secondary" type="submit">Sign out</button>
+    </form>
+</main>
+</body>
+</html>
