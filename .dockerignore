@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+!.env.example
+**/target/
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+**/*.jar
+**/*.class
+secrets/

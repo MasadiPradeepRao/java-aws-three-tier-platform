@@ -8,7 +8,7 @@ This is an independently authored application and deployment platform, inspired 
 
 ## Current status
 
-This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. A local MySQL setup is documented in [app/README.md](app/README.md). Terraform now defines the AWS network, public load balancer, private EC2 Auto Scaling Group foundation, and isolated RDS MySQL instance in [infra/terraform](infra/terraform). The app group defaults to zero instances until container deployment is implemented.
+This repository is under active development. The independently written Spring Boot app has Spring Security sign-in, BCrypt password hashes, JDBC-backed users, a Flyway-managed MySQL schema, and environment-based database configuration. The app now has a multi-stage, non-root Docker image and a local Trivy vulnerability scan command, documented in [app/README.md](app/README.md). Terraform defines the AWS network, public load balancer, private EC2 Auto Scaling Group foundation, and isolated RDS MySQL instance in [infra/terraform](infra/terraform). The app group defaults to zero instances until image publishing and instance bootstrap are implemented.
 
 ## Planned milestones
 
@@ -17,7 +17,7 @@ This repository is under active development. The independently written Spring Bo
 3. Add a reproducible local MySQL environment and run instructions.
 4. Create the AWS network and least-privilege security boundaries in Terraform.
 5. Add the application tier, load balancer, and private database foundation in Terraform; container bootstrap follows.
-6. Package the application with Docker and add image security checks.
+6. Package the application with Docker and add image security checks. Local image build and Trivy scan commands are available.
 7. Add Maven CI, code-quality analysis, and artifact publishing.
 8. Deploy through short-lived GitHub OIDC credentials and a documented release flow.
 9. Add monitoring, cost controls, teardown instructions, and portfolio evidence.
