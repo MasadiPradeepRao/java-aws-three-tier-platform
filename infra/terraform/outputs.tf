@@ -52,3 +52,13 @@ output "database_master_secret_arn" {
   description = "Secrets Manager ARN for the RDS-managed master password; not the password itself."
   value       = module.database.master_secret_arn
 }
+
+output "ecr_repository_url" {
+  description = "Immutable-tag Amazon ECR repository for scanned application images."
+  value       = module.release.repository_url
+}
+
+output "github_actions_role_arn" {
+  description = "AWS role assumed by the trusted GitHub Actions OIDC subject."
+  value       = module.release.github_role_arn
+}

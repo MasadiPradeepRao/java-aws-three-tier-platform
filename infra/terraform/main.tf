@@ -48,3 +48,12 @@ module "database" {
   instance_class             = var.database_instance_class
   master_username            = var.database_master_username
 }
+
+module "release" {
+  source = "./modules/release"
+
+  project_name      = var.project_name
+  environment       = var.environment
+  github_repository = var.github_repository
+  github_branch     = var.github_branch
+}

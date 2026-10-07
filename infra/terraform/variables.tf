@@ -138,3 +138,20 @@ variable "database_master_username" {
     error_message = "The database master username must start with a letter and contain at most 16 letters, digits, or underscores."
   }
 }
+
+variable "github_repository" {
+  description = "GitHub owner/repository allowed to assume the AWS release role."
+  type        = string
+  default     = "MasadiPradeepRao/java-aws-three-tier-platform"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repository))
+    error_message = "github_repository must use the owner/repository format."
+  }
+}
+
+variable "github_branch" {
+  description = "Protected branch whose GitHub Actions workflow may publish to ECR."
+  type        = string
+  default     = "main"
+}

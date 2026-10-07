@@ -5,6 +5,7 @@ This Terraform root builds a three-tier AWS foundation in two Availability Zones
 - Public subnets host an internet-facing Application Load Balancer.
 - Private application subnets host an EC2 Auto Scaling Group. Instances have no public IPs, use encrypted root volumes and require IMDSv2. Systems Manager access is enabled through an instance role; SSH is not opened.
 - Isolated data subnets host an encrypted, private Amazon RDS for MySQL 8.4 instance. Its password is generated and managed by RDS in Secrets Manager.
+- GitHub Actions can assume a narrowly scoped AWS role with OIDC to publish the already-scanned image to an immutable-tag Amazon ECR repository. No long-lived AWS access keys are stored in GitHub.
 
 Security groups restrict the path to browser -> ALB -> application -> database. The app tier accepts port 8080 only from the ALB, and MySQL accepts port 3306 only from the app tier. A target group checks `/actuator/health`.
 
@@ -27,6 +28,7 @@ The database is deliberately configured for a disposable demo: deletion protecti
 - Terraform 1.9 or newer
 - AWS CLI configured with a least-privilege identity
 - Permission to create the network, load balancer, IAM role, EC2 launch template and Auto Scaling Group, RDS, and Secrets Manager resources
+- Permission to create an IAM OIDC provider, IAM role and policy, and ECR repository
 - Optional: a validated ACM certificate in the selected region for HTTPS
 
 ## Plan and apply
@@ -43,6 +45,10 @@ terraform apply tfplan
 ```
 
 Review every plan before applying. Terraform uses local state in this learning step. Do not commit `.terraform/`, `terraform.tfstate*`, `tfplan`, or real `terraform.tfvars` files. Configure protected remote state before using this collaboratively or from CI.
+
+After applying, copy the `github_actions_role_arn` and `ecr_repository_url` outputs into GitHub repository **Actions variables** named `AWS_ROLE_ARN` and `ECR_REPOSITORY_URI`; set `AWS_REGION` to the same region used by Terraform. These are identifiers, not secrets. The ECR workflow is skipped until all three variables exist. The role trust policy accepts only the configured repository and branch. If the AWS account already has the GitHub Actions OIDC provider, import that provider into Terraform state before applying instead of attempting to create a duplicate.
+
+The ECR workflow publishes the same image tarball that passed the CI vulnerability scan, tagged with the full source commit SHA. ECR rejects tag overwrites. The existing GHCR publication remains unchanged.
 
 ## Tear down
 
