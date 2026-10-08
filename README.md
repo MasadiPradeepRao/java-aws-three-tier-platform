@@ -141,13 +141,3 @@ Terraform files and step-by-step setup are in [`infra/terraform`](infra/terrafor
 
 The [portfolio evidence checklist](docs/portfolio-evidence.md) suggests useful screenshots after a real deployment and explains what to redact. It separates implemented configuration from infrastructure that has actually been deployed.
 
-## Security notes
-
-- Never commit `.env`, AWS credentials, passwords, access tokens, Terraform state, or generated environment files.
-- Use test credentials for the local demo.
-- The demo can use HTTP. Do not enter real credentials unless HTTPS is configured before exposing it.
-- Review the deployment guide’s network, secret, and teardown details before creating AWS resources.
-
-## Project origin
-
-This application and delivery platform are an independent implementation. The learning direction came from a public [Java login and AWS three-tier exercise](https://github.com/NotHarshhaa/DevOps-Projects/tree/master/DevOps-Project-01); its application code is not part of this repository.
