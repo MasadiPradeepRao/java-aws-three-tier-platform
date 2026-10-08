@@ -1,8 +1,5 @@
 # Java AWS Three-Tier Platform
 
-<p align="center">
-  <img src="docs/assets/architecture-overview.svg" alt="Java AWS Three-Tier Platform architecture" width="100%" />
-</p>
 
 A production-style Java application running on AWS, built to demonstrate how a Spring Boot service, private database, and secure cloud infrastructure work together in a real-world three-tier architecture.
 
@@ -219,6 +216,3 @@ This repository is meant to be practical, educational, and easy to understand at
 
 ---
 
-<p align="center">
-  <img src="docs/assets/architecture-overview.svg" alt="Java AWS Three-Tier Platform architecture visual" width="82%" />
-</p>
