@@ -1,143 +1,238 @@
-# Access Portal on AWS
+# Java AWS Three-Tier Platform
 
-A small Java sign-in application packaged with Docker and supported by a Terraform AWS foundation. This repository shows how an application can move from local development through image scanning and, when configured, into AWS.
+A full-stack demo project that shows how to build, containerize, secure, and deploy a Java Spring Boot application on AWS using Terraform, Docker, GitHub Actions, and production-style infrastructure patterns.
 
-> **Current state:** The application and GitHub Actions workflow are implemented. Terraform describes the AWS environment; AWS resources are created only when an operator configures and applies it. The default Auto Scaling Group starts with **zero instances**.
+This repository is designed to help developers and cloud engineers understand how a real-world application can move from local development to a deployed three-tier architecture in AWS.
 
-| Start here | |
-|---|---|
-| Try the app locally | [Run locally](#run-locally) |
-| Understand the system | [How it fits together](#how-it-fits-together) |
-| Deploy to AWS | [AWS deployment guide](infra/terraform/README.md) |
+<p align="center">
+  <img src="https://raw.githubusercontent.com/MasadiPradeepRao/java-aws-three-tier-platform/main/docs/assets/architecture-banner.png" alt="Java AWS Three-Tier Platform" width="100%" />
+</p>
 
-## At a glance
+> Note: if you do not add an image under `docs/assets/`, GitHub will still render the diagrams below. The project is intentionally described visually so viewers can understand the architecture quickly without reading the entire codebase first.
 
-- **Application:** Java 21, Spring Boot, Spring Security, MySQL, and Flyway.
-- **Local run:** Docker Compose supplies MySQL; a script starts the app.
-- **Delivery:** GitHub Actions verifies the app, builds a container, scans it with Trivy, then publishes the scanned image on pushes to `main`.
-- **AWS foundation:** Terraform describes a load balancer, private application and database subnets, EC2 Auto Scaling, RDS, ECR, and monitoring.
+## What this repository is about
 
-## How it fits together
+This project packages a Java-based access portal application into a container and deploys it across a protected AWS environment with:
 
-### A request to the application
+- A public-facing load balancer
+- A private application tier running on EC2
+- A private MySQL database tier in RDS
+- IaC with Terraform
+- CI/CD automation with GitHub Actions
+- Container image scanning and publishing
+- Security-focused networking and IAM design
+
+In simple terms, this repo demonstrates a production-style cloud architecture for hosting a Java app while keeping the database and app instances private and isolated.
+
+## Why this project matters
+
+This is not just a Hello World app. It is a reference architecture for:
+
+- Java application development with Spring Boot
+- Local containerized runs with Docker Compose
+- Cloud infrastructure provisioning with Terraform
+- Secure deployment patterns in AWS
+- Automated checks before release
+- Responsible delivery with vulnerability scanning
+
+The goal is to show how application code and AWS infrastructure work together as a complete platform.
+
+## Architecture overview
 
 ```mermaid
 flowchart LR
-    User[Browser] -->|HTTP or HTTPS| ALB[Load balancer]
-    subgraph AWS[AWS account]
-        subgraph VPC[Project network]
-            ALB -->|Health-checked traffic| App[Spring Boot app<br/>private subnet]
-            App -->|Encrypted connection| DB[(MySQL database<br/>isolated subnet)]
-            App -->|Outbound image access| NAT[NAT gateway]
-        end
-        NAT --> ECR[Container image registry]
-        App -. reads app credentials .-> Secret[Secrets Manager]
-        ALB -. health and service metrics .-> CW[CloudWatch alarms]
-        DB -. service metrics .-> CW
+    User[User / Browser] -->|HTTPS| ALB[Application Load Balancer]
+
+    subgraph AWS[AWS VPC]
+        ALB -->|Routes requests| APP[Spring Boot App\nPrivate subnet]
+        APP -->|Reads/Writes data| DB[(MySQL RDS\nPrivate subnet)]
+        APP -->|Pulls image| ECR[Amazon ECR]
+        APP -->|Outbound internet access| NAT[NAT Gateway]
+        APP -. fetches secret .-> SM[AWS Secrets Manager]
     end
+
+    DEV[Developer] -->|Push code| GHA[GitHub Actions]
+    GHA -->|Build + scan| ECR
+    GHA -->|Terraform apply| AWS
 ```
 
-The load balancer is the public entry point. The application and database do not have public addresses. The app tier is set to zero instances until its database user and secret are prepared. The load balancer, database, NAT gateway, and public IPv4 addresses can still cost money while the app tier is empty.
+This diagram shows the core structure of the platform:
 
-### Build, scan, and publish
+- The browser reaches the app through a public load balancer.
+- The application and database are placed in private networking.
+- Secrets are handled securely instead of being embedded in the app.
+- The code is delivered through CI/CD into AWS-managed services.
+
+## End-to-end delivery flow
 
 ```mermaid
-flowchart LR
-    Change[Pull request or push to main] --> Verify[Maven verify<br/>and SpotBugs]
-    Verify --> Build[Build container]
-    Build --> Scan[Trivy scan<br/>HIGH and CRITICAL]
-    Scan --> Image[Keep scanned image]
-    Image -->|Push to main| GHCR[Publish to GHCR]
-    Image -->|AWS variables configured| ECR[Publish to Amazon ECR]
-    ECR -->|Rollout variables configured| SSM[Restart app instances<br/>and check health]
+sequenceDiagram
+    participant Dev as Developer
+    participant GH as GitHub
+    participant CI as GitHub Actions
+    participant Trivy as Container Scan
+    participant ECR as Amazon ECR
+    participant TF as Terraform
+    participant AWS as AWS Environment
+
+    Dev->>GH: Push code / open PR
+    GH->>CI: Trigger workflow
+    CI->>CI: Run Maven verification
+    CI->>Trivy: Scan container image
+    Trivy-->>CI: Security result
+    CI->>ECR: Publish approved image
+    Dev->>TF: Configure and apply AWS foundation
+    TF->>AWS: Provision network, ALB, EC2, RDS, IAM
+    AWS->>ECR: Pull deployed image
+    AWS-->>Dev: Application becomes available
 ```
 
-Pull requests run verification and scanning but do not publish. On a push to `main`, publishing uses the same image artifact that passed the scan. AWS publishing uses short-lived GitHub OIDC credentials when configured; long-lived AWS keys are not stored in GitHub.
+This sequence describes the lifecycle from source code to deployed application.
 
-## Run locally
+## What the project includes
 
-### You’ll need
+### Application layer
+- Java 21 application
+- Spring Boot backend
+- Spring Security authentication
+- MySQL database integration
+- Flyway-based schema updates
 
-- JDK 21
-- Maven 3.9 or newer
-- Docker Desktop with Docker Compose
-- Bash (Git Bash works on Windows)
+### Platform and deployment layer
+- Docker containerization
+- Docker Compose for local development
+- Terraform provisioning for AWS resources
+- Application Load Balancer
+- EC2 Auto Scaling Group
+- Amazon RDS for MySQL
+- Secrets Manager and IAM-based access
 
-### Start the app
+### DevOps layer
+- GitHub Actions for CI
+- Trivy vulnerability scanning
+- Image publishing to container registries
+- Optional AWS rollout automation
 
-From the repository root, create the local environment file:
+## Deployment topology
+
+```mermaid
+flowchart TB
+    subgraph Public
+        Internet[Internet] --> ALB[ALB\nPublic entry point]
+    end
+
+    subgraph AppTier[Application Tier]
+        ALB --> ASG[EC2 Auto Scaling Group\nPrivate app instances]
+        ASG --> APP[Java Spring Boot App]
+    end
+
+    subgraph DataTier[Data Tier]
+        APP --> RDS[(MySQL RDS\nPrivate database)]
+    end
+
+    APP -. IAM / config .-> SM[Secrets Manager]
+    ALB -. health checks / metrics .-> CW[CloudWatch]
+    RDS -. metrics .-> CW
+```
+
+This architecture reflects a classic three-tier design:
+
+1. Presentation layer: load balancer and public internet access
+2. Application layer: Java app hosted on EC2 in private subnets
+3. Data layer: database in private, isolated networking
+
+## Local development workflow
+
+The project supports local development using Docker Compose and scripts.
 
 ```bash
 cp .env.example .env
-```
-
-Edit `.env` and replace the password placeholders with unique, local-only values. Then start MySQL and the app:
-
-```bash
 bash scripts/run-local.sh
 ```
 
-Open [http://localhost:8080](http://localhost:8080), register a test account, and sign in. The database keeps its data in a Docker volume.
+Then open:
 
-To stop the app, press `Ctrl+C`. Stop MySQL with:
+- http://localhost:8080
 
-```bash
-docker compose down
+This allows the Java app and MySQL database to run locally in a realistic setup before deploying to AWS.
+
+## CI/CD and release flow
+
+```mermaid
+flowchart LR
+    PR[Pull Request] --> VERIFY[Maven verify]
+    VERIFY --> BUILD[Build Java app]
+    BUILD --> SCAN[Trivy scan]
+    SCAN --> PASS{Passed checks?}
+    PASS -- Yes --> PUBLISH[Publish image]
+    PASS -- No --> BLOCK[Stop release]
+    PUBLISH --> GHCR[GitHub Container Registry]
+    PUBLISH --> ECR[AWS ECR]
 ```
 
-To also delete the local database and its data, use `docker compose down --volumes`.
+The workflow validates the code, scans the container for vulnerabilities, and only publishes an image if the checks pass. This gives the project a safer release lifecycle than pushing a container blindly.
 
-### Run the app in a container
+## Repository structure
 
-With `.env` configured, start both the app and database as containers:
-
-```bash
-docker compose --profile container up --build
+```text
+.
+├── app/                     # Java Spring Boot application
+├── infra/terraform/         # AWS infrastructure definitions
+├── scripts/                 # Local automation scripts
+├── .github/workflows/       # CI/CD automation
+├── docs/                    # Portfolio evidence and supporting docs
+├── compose.yaml             # Local compose setup
+├── .env.example             # Example environment variables
+├── README.md                # Project overview
+├── pom.xml                  # Java build config (inside app/)
+└── LICENSE                  # If present in your repo
 ```
 
-The app runs as a non-root user with a read-only filesystem. Both services bind to localhost.
+## Technologies used
 
-### Scan the container image
+- Java 21
+- Spring Boot
+- Spring Security
+- Maven
+- Docker / Docker Compose
+- MySQL
+- Terraform
+- AWS EC2, RDS, ECR, ALB, Secrets Manager
+- GitHub Actions
+- Trivy
 
-Install [Trivy](https://trivy.dev/latest/getting-started/installation/), then build and scan:
+## Who is this for?
 
-```bash
-docker compose --profile container build access-portal
-bash scripts/scan-image.sh
-```
+This repository is useful for:
 
-The scan fails when it finds HIGH or CRITICAL vulnerabilities. For more application commands, see [app/README.md](app/README.md).
+- Developers learning cloud-native Java deployment
+- Students building AWS portfolio projects
+- DevOps engineers learning Terraform + AWS service wiring
+- Anyone exploring secure architecture patterns for real applications
 
-## CI and image publishing
+## Quick summary
 
-The workflow in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on pull requests to `main` and pushes to `main`:
+This repo demonstrates a complete cloud application lifecycle:
 
-1. Maven verification and SpotBugs analysis.
-2. Container build and Trivy vulnerability scan.
-3. On pushes to `main`, publish the scanned image to GHCR with a commit SHA tag and `latest`.
-4. If AWS repository variables are set, publish to ECR using GitHub OIDC.
-5. If rollout variables are also set, restart running app instances one at a time and wait for health checks.
+- Build a Java app
+- Run it locally with containers
+- Secure the environment with AWS networking and IAM
+- Define infrastructure as code with Terraform
+- Validate and scan the image automatically
+- Deploy it to a three-tier AWS architecture
 
-The project does not yet include an automated application test suite. Maven runs the test lifecycle, but test coverage should not be claimed until focused tests are added.
+That combination makes it an excellent example of modern application delivery in a cloud-first environment.
 
-## AWS deployment
+## Next steps
 
-Terraform files and step-by-step setup are in [`infra/terraform`](infra/terraform). Read its [deployment guide](infra/terraform/README.md) before applying anything. It covers AWS prerequisites, account-specific configuration, database setup, GitHub variables, monitoring, costs, and teardown.
+- Read the app details in `app/README.md`
+- Review the AWS deployment guide in `infra/terraform/README.md`
+- Configure your local environment with `.env`
+- Run the app locally
+- Apply the Terraform foundation in AWS
 
-**Cost note:** This is a learning environment, not a free deployment. The load balancer, RDS, NAT gateway, CloudWatch alarms, and public IPv4 addresses can incur charges. Review the Terraform plan and cost estimate before applying. The demo database is deleted without a final snapshot when the stack is destroyed.
+This repository is meant to be both understandable and practical: it shows the full picture of a Java application deployed in AWS without hiding the infrastructure decisions behind abstraction.
 
-## Project layout
+---
 
-| Path | What’s inside |
-|---|---|
-| `app/` | Spring Boot application and Dockerfile |
-| `infra/terraform/` | AWS infrastructure modules and deployment guide |
-| `scripts/` | Local run and image scan helpers |
-| `.github/workflows/` | CI, scanning, image publishing, and optional rollout |
-| `compose.yaml` | Local MySQL and container setup |
-| `docs/` | Portfolio evidence checklist |
-
-## Portfolio evidence
-
-The [portfolio evidence checklist](docs/portfolio-evidence.md) suggests useful screenshots after a real deployment and explains what to redact. It separates implemented configuration from infrastructure that has actually been deployed.
-
+If you want, I can also turn this into a more polished portfolio-style README with badges, screenshots, and a stronger “demo-ready” landing page layout.
